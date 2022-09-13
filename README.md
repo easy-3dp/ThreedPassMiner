@@ -43,25 +43,39 @@ ThreedPassMinerDeamon.exe
 可选参数：
 
 使用多少线程，默认是逻辑处理器*4
+```sh
 --threads 64
+```
 
 连接的节点程序的IP，本机是127.0.0.1
+```sh
 --node-rpc-host 127.0.0.1
+```
 
 连接的节点程序的端口，就是节点程序参数里的--rpc-port
+```sh
 --node-rpc-port 9933
+```
 
 界面刷新的时间，默认1000毫秒（1秒==1000毫秒）
+```sh
 --refresh-interval 1000
+```
 
 如果你想测试算力：
+```sh
 dotnet ThreedPassMiner.dll --test --difficulty 100000
+```
 
 difficulty 后面填写正整数
+```sh
 --difficulty 100000
+```
 
 或者从节点的输出里复制，“Difficulty: []” 括号内文字为参数，需要加双引号
+```sh
 --difficulty "156, 94, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0"
+```
 
 
 WIN便捷运行方法：
@@ -120,25 +134,39 @@ ThreedPassMinerDeamon.exe
 OPTIONS:
 
 How many threads to use, the default is logical processor * 4
+```sh
 --threads 64
+```
 
 The IP of the connected node program, the local machine is 127.0.0.1
+```sh
 --node-rpc-host 127.0.0.1
+```
 
 The port of the connected node program, it is the '--rpc-port' in the node program parameters
+```sh
 --node-rpc-port 9933
+```
 
 The interface refresh interval, the default is 1000 milliseconds (1 second == 1000 milliseconds)
+```sh
 --refresh-interval 1000
+```
 
 If you want to test computing power：
+```sh
 dotnet ThreedPassMiner.dll --test --difficulty 100000
+```
 
 Fill in a positive integer after difficulty
+```sh
 --difficulty 100000
+```
 
 Or copy from the output of the node program, "Difficulty: []", the text in parentheses is a parameter and needs to be enclosed in double quotation marks
+```sh
 --difficulty "156, 94, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0"
+```
 
 
 WIN convenient operation method：
