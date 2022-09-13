@@ -1,0 +1,45 @@
+﻿namespace ThreeJs4Net.Core
+{
+    public class Layers
+    {
+        public Layers()
+        {
+            this.Mask = 1 | 0;
+        }
+
+        #region --- Already in R116 ---
+        public long Mask { get; set; }
+
+        public void Set(int channel)
+        {
+            this.Mask = 1 << channel | 0;
+        }
+
+        public void Enable(int channel ) {
+
+            this.Mask |= 1 << channel | 0;
+        }
+
+        public void EnableAll()
+        {
+
+            this.Mask = 0xffffffff | 0;
+        }
+
+        public void Toggle(int channel ) {
+            this.Mask ^= 1 << channel | 0;
+        }
+
+        public void Disable(int channel ) {
+            this.Mask &= ~ ( 1 << channel | 0 );
+        }
+        public void DisableAll() {
+            this.Mask = 0;
+        }
+
+        public bool Test(Layers layers ) {
+            return ( this.Mask & layers.Mask ) != 0;
+        }
+        #endregion
+    }
+}
