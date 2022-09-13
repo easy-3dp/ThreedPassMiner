@@ -27,7 +27,9 @@ Telegram https://t.me/pass3d
 
 # 轻松3DP矿工
 
-轻松3DP矿工是3DP主网的挖矿程序，支持Windows和Linux系统。
+轻松3DP矿工是3DP主网的挖矿程序，支持Windows和Linux系统。  
+它不可以连接官方节点程序，使用官方节点程序无法获取必要的数据，无法开始计算。  
+你必须使用[这个节点程序](https://github.com/easy-3dp/3DP)，这是开源的，你可以根据这个代码修改你自己的节点程序。  
 
 # 教程
 
@@ -120,7 +122,9 @@ ThreedPassMinerDeamon.exe --threads 64 --node-rpc-host 127.0.0.1 --node-rpc-port
 ---
 
 # easy 3DP miner
-easy_3DP_miner is the mining program of the 3DP mainnet, which supports Windows and Linux systems.
+easy_3DP_miner is the mining program of the 3DP mainnet, which supports Windows and Linux systems.  
+It cannot be connected to the official node program, the necessary data cannot be obtained using the official node program, and the calculation cannot be started.  
+You have to use [this node program](https://github.com/easy-3dp/3DP). It is open source, you can modify your own node program according to this code.  
 
 # Tutorial
 
