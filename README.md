@@ -1,6 +1,33 @@
+[![logo](https://3dpass.org/assets/img/3DPass_on_the_moon.png)](https://3dpass.org)
+
+# 一些链接
+官网 https://3dpass.org/  
+官网钱包 https://wallet.3dpass.org/  
+官网挖矿遥测 https://telemetry.3dpass.org/#/0x6c5894837ad89b6d92b114a2fb3eafa8fe3d26a54848e3447015442cd6ef4e66  
+官网挖矿数据 https://explorer2.3dpass.org/blocks.php  
+挖矿统计 https://3dp.zhuaao.com/  
+
+# 社区
+Discord https://discord.com/invite/u24WkXcwug  
+Telegram https://t.me/pass3d  
+中文社区 QQ群 692365694
+
+# links
+Official website https://3dpass.org/  
+Official website wallet https://wallet.3dpass.org/  
+Official website mining telemetry https://telemetry.3dpass.org/#/0x6c5894837ad89b6d92b114a2fb3eafa8fe3d26a54848e3447015442cd6ef4e66  
+Official website mining data https://explorer2.3dpass.org/blocks.php  
+Mining Statistics https://3dp.zhuaao.com/  
+
+# Community
+Discord https://discord.com/invite/u24WkXcwug  
+Telegram https://t.me/pass3d  
+
+---
+
 # 轻松3DP矿工
 
-这是3DP主网的挖矿程序，支持Windows和Linux系统。
+轻松3DP矿工是3DP主网的挖矿程序，支持Windows和Linux系统。
 
 # 教程
 
@@ -90,8 +117,10 @@ ThreedPassMinerDeamon.exe --threads 64 --node-rpc-host 127.0.0.1 --node-rpc-port
 调整生成模型的随机值。在官方代码中，它存在于miner\libs\rock_obj.js。  
 这些参数的意义请自行阅读代码理解，这里不阐述。
 
+---
+
 # easy 3DP miner
-This is the mining program of the 3DP mainnet, which supports Windows and Linux systems.
+easy_3DP_miner is the mining program of the 3DP mainnet, which supports Windows and Linux systems.
 
 # Tutorial
 
