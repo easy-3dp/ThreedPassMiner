@@ -78,14 +78,16 @@ difficulty 后面填写正整数
 ```
 
 
-WIN便捷运行方法：
+WIN便捷运行方法：  
 每次都要输入命令很麻烦，可以使用bat来自动化运行
 
 新建文本文档，输入以下文字，保存，修改后缀为bat，参数根据自己情况修改
+```sh
 ThreedPassMinerDeamon.exe --threads 64 --node-rpc-host 127.0.0.1 --node-rpc-port 9933
+```
 
 ## RockObjParams.json
-调整生成模型的随机值。在官方代码中，它存在于miner\libs\rock_obj.js。
+调整生成模型的随机值。在官方代码中，它存在于miner\libs\rock_obj.js。  
 这些参数的意义请自行阅读代码理解，这里不阐述。
 
 # easy 3DP miner
@@ -169,12 +171,14 @@ Or copy from the output of the node program, "Difficulty: []", the text in paren
 ```
 
 
-WIN convenient operation method：
+WIN convenient operation method：  
 It is very troublesome to enter the command every time, you can use bat to automate the operation
 
 Create a new text document, enter the following text, save, modify the suffix to bat, and modify the parameters according to your own situation
+```sh
 ThreedPassMinerDeamon.exe --threads 64 --node-rpc-host 127.0.0.1 --node-rpc-port 9933
+```
 
 ## RockObjParams.json
-Adjust the random values for the generative model. In the official code, it exists in 'miner\libs\rock_obj.js'.
+Adjust the random values for the generative model. In the official code, it exists in 'miner\libs\rock_obj.js'.  
 Please read the code to understand the meaning of these parameters, and will not be explained here.
