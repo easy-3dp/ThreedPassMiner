@@ -30,9 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="pass3d.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="WebHookParams.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
