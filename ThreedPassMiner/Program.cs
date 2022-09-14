@@ -35,15 +35,6 @@ namespace ThreedPassMiner
                 else throw new Exception("RockObjParams.json 解析失败");
             }
 
-            string? str_WebHookParams = null;
-            try { str_WebHookParams = File.ReadAllText("WebHookParams.json"); } catch { }
-            if (str_WebHookParams != null)
-            {
-                var obj = Newtonsoft.Json.JsonConvert.DeserializeObject<WebHookParams[]>(str_WebHookParams);
-                if (obj != null) WebHook.webHookParams = obj;
-                else throw new Exception("WebHookParams.json 解析失败");
-            }
-
             NodeServer.Start();
             Service.Start();
 
@@ -68,7 +59,6 @@ namespace ThreedPassMiner
                 switch (args[i].Trim())
                 {
                     default: throw new Exception("不支持的参数"+ args[i]);
-                    case "--main"         : Args.isMain        = true; break;
                     case "--node-rpc-host": Args.node_rpc_host = args[++i]; break;
                     case "--node-rpc-port": Args.node_rpc_port = args[++i]; break;
                     case "--test"         : Args.test          = true; break;

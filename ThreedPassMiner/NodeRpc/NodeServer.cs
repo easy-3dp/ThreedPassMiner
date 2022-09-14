@@ -29,9 +29,6 @@ namespace ThreedPassMiner
             else
             {
                 new Thread(Loop) { IsBackground = true }.Start();
-
-                if (Args.isMain)
-                    new Thread(NodeInfoLoop) { IsBackground = true }.Start();
             }
         }
 
@@ -286,40 +283,6 @@ namespace ThreedPassMiner
             NetInfo.node_pre_hash   = null;
             NetInfo.node_best_hash  = null;
             Metadata.Local .Update(null, null, null);
-        }
-
-
-        static void NodeInfoLoop()
-        {
-            while (true)
-            {
-                Thread.Sleep(1000);
-
-                try
-                {
-                    string url = $"http://{Args.node_rpc_host}:{Args.node_rpc_port}";
-                    string json = "";
-                    using (var web = new WebClient())
-                    {
-                        web.Headers["Content-Type"] = "application/json; charset=utf-8";
-                        json = web.UploadString(url, "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"poscan_getLog\"}");
-                    }
-
-                    var jo = JObject.Parse(json);
-                    string? result = (string?)jo["result"];
-                    if (result != null)
-                    {
-                        var array = result.Split("|", StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var msg in array)
-                        {
-                            WebHook.Notice(msg);
-                        }
-                    }
-                }
-                catch
-                {
-                }
-            }
         }
 
         //public static async void Send(string msg)

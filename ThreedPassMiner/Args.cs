@@ -12,7 +12,5 @@ namespace ThreedPassMiner
 
         public static int refresh_interval = 1000;
         public static uint threads = (uint)Environment.ProcessorCount << 2;
-
-        public static bool isMain = false;
     }
 }
