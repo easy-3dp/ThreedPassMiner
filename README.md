@@ -5,7 +5,7 @@
 官网钱包 https://wallet.3dpass.org/  
 官网挖矿遥测 https://telemetry.3dpass.org/#/0x6c5894837ad89b6d92b114a2fb3eafa8fe3d26a54848e3447015442cd6ef4e66  
 官网挖矿数据 https://explorer2.3dpass.org/blocks.php  
-挖矿统计 https://3dp.zhuaao.com/
+挖矿统计 https://3dp.zhuaao.com/  
 算力统计 http://120.46.172.54:6666/  
 
 # 社区
