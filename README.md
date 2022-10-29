@@ -5,7 +5,8 @@
 官网钱包 https://wallet.3dpass.org/  
 官网挖矿遥测 https://telemetry.3dpass.org/#/0x6c5894837ad89b6d92b114a2fb3eafa8fe3d26a54848e3447015442cd6ef4e66  
 官网挖矿数据 https://explorer2.3dpass.org/blocks.php  
-挖矿统计 https://3dp.zhuaao.com/  
+挖矿统计 https://3dp.zhuaao.com/
+算力统计 http://120.46.172.54:6666/  
 
 # 社区
 Discord https://discord.com/invite/u24WkXcwug  
@@ -17,7 +18,8 @@ Official website https://3dpass.org/
 Official website wallet https://wallet.3dpass.org/  
 Official website mining telemetry https://telemetry.3dpass.org/#/0x6c5894837ad89b6d92b114a2fb3eafa8fe3d26a54848e3447015442cd6ef4e66  
 Official website mining data https://explorer2.3dpass.org/blocks.php  
-Mining Statistics https://3dp.zhuaao.com/  
+Mining Statistics https://3dp.zhuaao.com/
+Computing Power Statistics http://120.46.172.54:6666/  
 
 # Community
 Discord https://discord.com/invite/u24WkXcwug  
@@ -29,7 +31,7 @@ Telegram https://t.me/pass3d
 
 轻松3DP矿工是3DP主网的挖矿程序，支持Windows和Linux系统。  
 它不可以连接官方节点程序，使用官方节点程序无法获取必要的数据，无法开始计算。  
-你必须使用[这个节点程序](https://github.com/easy-3dp/3DP)，这是开源的，你可以根据这个代码修改你自己的节点程序。  
+节点运行教程 https://github.com/easy-3dp/Server/blob/master/README.md  
 
 # 教程
 
@@ -40,10 +42,6 @@ Telegram https://t.me/pass3d
 获取ROOT权限
 ```sh
 sudo -i
-```
-apt更新
-```sh
-apt update
 ```
 
 安装.net6
@@ -76,19 +74,30 @@ ThreedPassMinerDeamon.exe
 --threads 64
 ```
 
-连接的节点程序的IP，本机是127.0.0.1
+连接的Server程序的IP，本机是127.0.0.1
 ```sh
 --node-rpc-host 127.0.0.1
 ```
 
-连接的节点程序的端口，就是节点程序参数里的--rpc-port
+连接的Server程序的端口
 ```sh
---node-rpc-port 9933
+--node-rpc-port 9999
 ```
 
 界面刷新的时间，默认1000毫秒（1秒==1000毫秒）
 ```sh
 --refresh-interval 1000
+```
+
+多少时间后重启，secs是多少秒后重启，hours是多少小时后重启，二选一，不可2个都写。注意重启由ThreedPassMinerDeamon实现，如果你直接启动ThreedPassMiner，那么就只会关闭不会重启
+```sh
+--restart-secs 1800
+--restart-hours 1
+```
+
+禁止算力上传
+```sh
+--dont-track
 ```
 
 如果你想测试算力：
@@ -110,10 +119,12 @@ difficulty 后面填写正整数
 WIN便捷运行方法：  
 每次都要输入命令很麻烦，可以使用bat来自动化运行
 
-新建文本文档，输入以下文字，保存，修改后缀为bat，参数根据自己情况修改
+新建文本文档，输入以下文字，保存，修改后缀为bat，参数根据自己情况修改：（以下表示启动2个窗口，每个窗口启动1线程）
 ```sh
-ThreedPassMinerDeamon.exe --threads 64 --node-rpc-host 127.0.0.1 --node-rpc-port 9933
+start ThreedPassMinerDeamon --node-rpc-host 127.0.0.1 --node-rpc-port 9999 --threads 1
+start ThreedPassMinerDeamon --node-rpc-host 127.0.0.1 --node-rpc-port 9999 --threads 1
 ```
+PS：多进程似乎比多线程总算力更高点。  
 
 ## RockObjParams.json
 调整生成模型的随机值。在官方代码中，它存在于miner\libs\rock_obj.js。  
@@ -124,7 +135,7 @@ ThreedPassMinerDeamon.exe --threads 64 --node-rpc-host 127.0.0.1 --node-rpc-port
 # easy 3DP miner
 easy_3DP_miner is the mining program of the 3DP mainnet, which supports Windows and Linux systems.  
 It cannot be connected to the official node program, the necessary data cannot be obtained using the official node program, and the calculation cannot be started.  
-You have to use [this node program](https://github.com/easy-3dp/3DP). It is open source, you can modify your own node program according to this code.  
+How to run node https://github.com/easy-3dp/Server/blob/master/README.md  
 
 # Tutorial
 
@@ -135,10 +146,6 @@ You have to use [this node program](https://github.com/easy-3dp/3DP). It is open
 Get ROOT permission
 ```sh
 sudo -i
-```
-Apt update
-```sh
-apt update
 ```
 
 Install .net6
@@ -173,19 +180,30 @@ How many threads to use, the default is logical processor * 4
 --threads 64
 ```
 
-The IP of the connected node program, the local machine is 127.0.0.1
+The IP of the connected `Server` program, the local machine is 127.0.0.1
 ```sh
 --node-rpc-host 127.0.0.1
 ```
 
-The port of the connected node program, it is the '--rpc-port' in the node program parameters
+The port of the connected `Server` program
 ```sh
---node-rpc-port 9933
+--node-rpc-port 9999
 ```
 
 The interface refresh interval, the default is 1000 milliseconds (1 second == 1000 milliseconds)
 ```sh
 --refresh-interval 1000
+```
+
+How many time to restart after, `secs` is how many seconds to restart, `hours` is how many hours to restart, choose one of the two, not write both. Note that the restart is implemented by ThreedPassMinerDeamon, if you start ThreedPassMiner directly, it will only shut down and not restart
+```sh
+--restart-secs 1800
+--restart-hours 1
+```
+
+Don't track computing power
+```sh
+--dont-track
 ```
 
 If you want to test computing power：
@@ -207,10 +225,12 @@ Or copy from the output of the node program, "Difficulty: []", the text in paren
 WIN convenient operation method：  
 It is very troublesome to enter the command every time, you can use bat to automate the operation
 
-Create a new text document, enter the following text, save, modify the suffix to bat, and modify the parameters according to your own situation
+Create a new txt file, enter the following text, save, modify the suffix to bat, and modify the parameters according to your own situation：(The following shows starting 2 program, each program starting 1 thread)
 ```sh
-ThreedPassMinerDeamon.exe --threads 64 --node-rpc-host 127.0.0.1 --node-rpc-port 9933
+start ThreedPassMinerDeamon --node-rpc-host 127.0.0.1 --node-rpc-port 9999 --threads 1
+start ThreedPassMinerDeamon --node-rpc-host 127.0.0.1 --node-rpc-port 9999 --threads 1
 ```
+PS: Multi-process seems to have a higher computing power than multi-threading.  
 
 ## RockObjParams.json
 Adjust the random values for the generative model. In the official code, it exists in 'miner\libs\rock_obj.js'.  
