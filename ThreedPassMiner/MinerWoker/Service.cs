@@ -3,19 +3,16 @@ using System.Net;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
+using ThreedPassMiner.RockObj;
 
 namespace ThreedPassMiner
 {
     internal static class Service
     {
         [DllImport("pass3d", CallingConvention = CallingConvention.Cdecl)]
-        static extern int gethash(string data, byte[] best, IntPtr ptr_hash);
+        static extern bool p3d_process(RockObj.RockObj rock_obj_params, byte[] pre, bool fast, IntPtr hash, IntPtr poisitons, IntPtr indices, IntPtr normals);
 
         readonly static BigInteger max_u256;
-        readonly static ConcurrentBag<DoubleHash> poolDoubleHash = new ConcurrentBag<DoubleHash>();
-        readonly static ConcurrentBag<Compute> poolCompute = new ConcurrentBag<Compute>();
-        //readonly static ConcurrentBag<byte[]> poolBuffer = new ConcurrentBag<byte[]>();
-        readonly static ConcurrentBag<IntPtr> poolPass3dBuffer = new ConcurrentBag<IntPtr>();
 
         static Service()
         {
@@ -33,10 +30,17 @@ namespace ThreedPassMiner
 
         static void Loop()
         {
+            IntPtr hash = Marshal.AllocHGlobal(64);
+            IntPtr poisitons = Marshal.AllocHGlobal(14448);
+            IntPtr indices = Marshal.AllocHGlobal(14400);
+            IntPtr normals = Marshal.AllocHGlobal(14448);
+            Compute compute = new Compute();
+            DoubleHash dh = new DoubleHash(); dh.obj_hash = new byte[32];
+            RockObj.RockObj rock = new RockObj.RockObj();
+
             while (true)
             {
-                string pre_obj = RockObj.RockSpawn.Spawn();
-
+                int id;
                 BigInteger? difficulty;
                 byte[]? difficultyBytes;
                 byte[]? pre_hash;
@@ -45,46 +49,27 @@ namespace ThreedPassMiner
 
                 if (difficulty != null && difficultyBytes != null && pre_hash != null && best_hash != null)
                 {
-                    IntPtr p3dBuffer;
-                    if (!poolPass3dBuffer.TryTake(out p3dBuffer))
-                        p3dBuffer = Marshal.AllocHGlobal(640);
+                    rock.VaryMesh(RockSpawn.rockObjParams);
 
-                    var hashResult = -1;
-                    try { hashResult = gethash(pre_obj, best_hash, p3dBuffer); } catch { }
+                    var hashResult = p3d_process(rock, best_hash[0..4], false, hash, poisitons, indices, normals);
 
-                    if (hashResult == 0)
+                    if (!hashResult)
                     {
-                        Statistics.AddErrorRecord();
+                        Statistics.AddEmptyRecord();
                     }
-                    else if (hashResult > 0)
+                    else
                     {
-                        byte[] hashBytes = new byte[hashResult * 64];
-                        Marshal.Copy(p3dBuffer, hashBytes, 0, hashBytes.Length);
-                        string hashes = Encoding.ASCII.GetString(hashBytes);
+                        string hashes;
+                        unsafe { hashes = Encoding.ASCII.GetString((byte*)hash, 64); }
 
-                        //byte[]? obj_hash;
-                        //if (!poolBuffer.TryTake(out obj_hash))
-                        //    obj_hash = new byte[32];
-                        //Hex.Decode(hashes[0..64], obj_hash);
-
-                        DoubleHash? dh;
-                        if (!poolDoubleHash.TryTake(out dh))
-                            dh = new DoubleHash();
                         dh.pre_hash = pre_hash;
-                        dh.obj_hash = Hex.Decode(hashes[..64]);
+                        Hex.Decode(hashes, dh.obj_hash);
                         var poscan_hash = dh.CalcHash();
-                        poolDoubleHash.Add(dh);
 
-                        Compute? compute;
-                        if (!poolCompute.TryTake(out compute))
-                            compute = new Compute();
                         compute.difficulty = difficultyBytes;
                         compute.pre_hash = pre_hash;
                         compute.poscan_hash = poscan_hash;
                         var work = new BigInteger(compute.Seal(), true, true);
-                        poolCompute.Add(compute);
-
-                        //poolBuffer.Add(obj_hash);
 
                         bool? success = null;
 
@@ -96,21 +81,11 @@ namespace ThreedPassMiner
                             }
                             else
                             {
-                                string str = $"{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"poscan_pushMiningObject\",\"params\":[1,\"{pre_obj.Replace("\n", "\\n")}\",\"{Hex.Encode(poscan_hash)}\",\"{hashes}\"]}}";
-                                using (var web = new WebClient())
-                                {
-                                    web.Headers["Content-Type"] = "application/json; charset=utf-8";
-                                    try {
-                                        var s = web.UploadString($"http://{Args.node_rpc_host}:{Args.node_rpc_port}", str.ToString());
-                                            if (!s.Contains("error"))
-                                                success = true;
-                                            NetInfo.push_echo = $"[{DateTime.Now}] {s}";
-                                    }
-                                    catch (Exception e) { 
-                                        Log.LogError(e);
-                                            success = false;
-                                    }
-                                }
+                                string pre_obj;
+                                unsafe { pre_obj = OBJExporter.Parse((double*)poisitons, (uint*)indices, (double*)normals); }
+                                string str = $"{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"poscan_pushMiningObject\",\"params\":[1,\"{pre_obj}\",\"{Hex.Encode(poscan_hash)}\",\"{hashes}\"]}}";
+                                NodeServer.Push(str);
+                                success = true;
                             }
                         }
                         else
@@ -118,11 +93,9 @@ namespace ThreedPassMiner
                             success = false;
                         }
 
-                        if(success!=null)
-                        Statistics.AddRecord(success.Value);
+                        if (success != null)
+                            Statistics.AddRecord(success.Value);
                     }
-
-                    poolPass3dBuffer.Add(p3dBuffer);
                 }
                 else
                 {
@@ -131,37 +104,12 @@ namespace ThreedPassMiner
             }
         }
 
-        //static string? GetObjHashes(string filename)
-        //{
-        //    Process process = new Process();
-        //    process.StartInfo.UseShellExecute = false;
-        //    process.StartInfo.CreateNoWindow = true;
-        //    process.StartInfo.RedirectStandardOutput = true;
-        //    process.StartInfo.FileName = "pass3d.exe";
-        //    process.StartInfo.Arguments = $"--algo grid2d --grid 8 --sect 66 --infile \"{filename}\"";
-        //    process.StartInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory;
-        //    process.Start();
-
-        //    var task = process.StandardOutput.ReadToEndAsync();
-        //    var result = task.Wait(TimeSpan.FromSeconds(1));
-        //    if (result && task.Status == TaskStatus.RanToCompletion)
-        //    {
-        //        var str = task.Result;
-        //        var arr = str.Split("\n", StringSplitOptions.RemoveEmptyEntries);
-        //        if (arr.Length == 11)
-        //            return arr[1].Trim('"');
-        //    }
-        //    return null;
-        //}
-
         static bool HashMeetsDifficulty(BigInteger hash, BigInteger difficulty) // byte[32] byte[32]
         {
             var overflowing_mul = BigInteger.Multiply(hash, difficulty);
             bool overflowed = max_u256 < overflowing_mul;
             return !overflowed;
         }
-
-
 
     }
 }

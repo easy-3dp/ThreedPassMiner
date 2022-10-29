@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Diagnostics;
 using System.Net;
-using System.Net.WebSockets;
+using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
 using Newtonsoft.Json.Linq;
@@ -9,264 +11,117 @@ namespace ThreedPassMiner
 {
     internal static class NodeServer
     {
-        //static readonly byte[] sendBuffer = Encoding.ASCII.GetBytes("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"poscan_getMeta\"}");
-        //static byte[] recvBuffer = new byte[1024];
+        static TcpClient client;
+        static DateTime ping = DateTime.Now;
+        static DateTime sendModelrate_lastDT = DateTime.Now;
+        static readonly byte[] id_ping = { 0 };
+        static readonly byte[] id_push = { 3 };
+        static readonly byte[] id_speed = { 4 };
+        static readonly byte[] end = { 0 };
 
         public static void Start()
         {
             if (Args.test)
             {
                 var difficulty = Args.difficultyBytes;
-                var pre_hash  = new byte[] { 93, 170, 214, 180, 185, 238, 58, 158, 250, 104, 217, 86, 142, 83, 179, 110, 219, 109, 232, 167, 253, 253, 223, 146, 46, 69, 149, 70, 179, 208, 188, 197 };
+                var pre_hash = new byte[] { 93, 170, 214, 180, 185, 238, 58, 158, 250, 104, 217, 86, 142, 83, 179, 110, 219, 109, 232, 167, 253, 253, 223, 146, 46, 69, 149, 70, 179, 208, 188, 197 };
                 var best_hash = new byte[] { 93, 170, 214, 180, 185, 238, 58, 158, 250, 104, 217, 86, 142, 83, 179, 110, 219, 109, 232, 167, 253, 253, 223, 146, 46, 69, 149, 70, 179, 208, 188, 197 };
 
                 Metadata.Local.Update(difficulty, pre_hash, best_hash);
                 NetInfo.nodeinfo = "TEST";
-                NetInfo.node_difficulty = $"[{string.Join(", ", difficulty)}]";
-                NetInfo.node_pre_hash   = $"[{string.Join(", ", pre_hash  )}]";
-                NetInfo.node_best_hash  = $"[{string.Join(", ", best_hash )}]";
+                NetInfo.node_difficulty = new BigInteger(difficulty, true).ToString();
+                NetInfo.node_pre_hash  = Hex.Encode(pre_hash);
+                NetInfo.node_best_hash = Hex.Encode(best_hash);
             }
             else
             {
-                new Thread(Loop) { IsBackground = true }.Start();
+                NetInfo.nodeinfo = "连接中……";
+                Watch();
+                SendModelrate();
             }
         }
 
-        //static async void Connect()
-        //{
-        //    try
-        //    {
-        //        ws = new ClientWebSocket();
-        //        await ws.ConnectAsync(new Uri(url), CancellationToken.None);
-        //        SendLoop();
-        //        RecvLoop();
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        Clean();
-        //        NetInfo.nodeinfo = e.InnerException?.Message ?? e.Message;
-        //        Log.LogError(e);
-        //        await Task.Delay(1000);
-        //        Connect();
-        //    }
-
-
-        //}
-
-        //static async void RecvLoop()
-        //{
-        //    try
-        //    {
-        //        while (ws.State == WebSocketState.Open)
-        //        {
-        //            string json;
-        //            try
-        //            {
-        //                var result = await ws.ReceiveAsync(recvBuffer, CancellationToken.None);
-        //                json = Encoding.ASCII.GetString(recvBuffer, 0, result.Count);
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                Clean();
-        //                NetInfo.nodeinfo = e.InnerException?.Message ?? e.Message;
-        //                Log.LogError(e);
-        //                await Task.Delay(1000);
-        //                break;
-        //            }
-
-        //            try
-        //            {
-        //                var jo = JObject.Parse(json);
-        //                int? id = (int?)jo["id"];
-        //                switch (id)
-        //                {
-        //                    case 1:
-        //                        {
-        //                            string? result = (string?)jo["result"];
-        //                            if (result == null || result.Length != 192)
-        //                            {
-        //                                Clean();
-        //                                NetInfo.nodeinfo = url;
-        //                            }
-        //                            else
-        //                            {
-        //                                var difficulty = Hex.Decode(result.Substring( 0, 64));
-        //                                var pre_hash   = Hex.Decode(result.Substring(64, 64));
-
-        //                                if (Metadata.Update(difficulty, pre_hash))
-        //                                {
-        //                                    Deque.Clear();
-
-        //                                    NetInfo.nodeinfo = url;
-        //                                    NetInfo.node_difficulty = $"[{string.Join(", ", difficulty)}]";
-        //                                    NetInfo.node_pre_hash   = $"[{string.Join(", ", pre_hash)}]";
-        //                                }
-        //                            }
-        //                        }
-        //                        break;
-        //                    case 2:
-        //                        {
-        //                            string? result = (string?)jo["result"];
-        //                            Statistics.AddRecord(!(result == null || result != "0"));
-        //                            NetInfo.push_echo = $"[{DateTime.Now}] {json}";
-        //                        }
-        //                        break;
-        //                    default:
-        //                        NetInfo.push_echo = $"[{DateTime.Now}] {json}";
-        //                        break;
-        //                }
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                Clean();
-        //                NetInfo.nodeinfo = e.InnerException?.Message ?? e.Message;
-        //                Log.LogError(e);
-        //            }
-        //        }
-        //        Connect();
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        Clean();
-        //        NetInfo.nodeinfo = e.InnerException?.Message ?? e.Message;
-        //        Log.LogError(e);
-        //        await Task.Delay(1000);
-        //        Connect();
-        //    }
-        //}
-
-        //static async void SendLoop()
-        //{
-        //    while (true)
-        //    {
-        //        try
-        //        {
-        //            await Task.Delay(200);
-        //            await ws.SendAsync(sendBuffer, WebSocketMessageType.Text, true, CancellationToken.None);
-        //        }
-        //        catch
-        //        {
-
-        //        }
-        //    }
-        //}
-
-        //static async void Loop(ClientWebSocket ws)
-        //{
-        //    try
-        //    {
-        //        while (ws.State == WebSocketState.Open)
-        //        {
-        //            await Task.Delay(200);
-
-        //            string json;
-        //            try
-        //            {
-        //                await ws.SendAsync(sendBuffer, WebSocketMessageType.Text, true, CancellationToken.None);
-        //                var result = await ws.ReceiveAsync(recvBuffer, CancellationToken.None);
-        //                json = Encoding.ASCII.GetString(recvBuffer,0, result.Count);
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                Clean();
-        //                NetInfo.nodeinfo = e.Message;
-        //                Log.LogError(e);
-        //                await Task.Delay(1000);
-        //                break;
-        //            }
-
-        //            try
-        //            {
-        //                var jo = JObject.Parse(json);
-        //                string? result = (string?)jo["result"];
-        //                if (result == null || result.Length != 192)
-        //                {
-        //                    Clean();
-        //                    NetInfo.nodeinfo = url;
-        //                }
-        //                else
-        //                {
-        //                    var difficulty = Hex.Decode(result.Substring(0, 64));
-        //                    var pre_hash = Hex.Decode(result.Substring(64, 64));
-
-        //                    if (Metadata.Update(difficulty, pre_hash))
-        //                    {
-        //                        Deque.Clear();
-
-        //                        NetInfo.nodeinfo = url;
-        //                        NetInfo.node_difficulty = $"[{string.Join(", ", difficulty)}]";
-        //                        NetInfo.node_pre_hash = $"[{string.Join(", ", pre_hash)}]";
-        //                    }
-        //                }
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                Clean();
-        //                NetInfo.nodeinfo = e.Message;
-        //                Log.LogError(e);
-        //            }
-        //        }
-        //        Connect();
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        Clean();
-        //        NetInfo.nodeinfo = e.Message;
-        //        Log.LogError(e);
-        //        await Task.Delay(1000);
-        //        Connect();
-        //    }
-        //}
-
-        static void Loop()
+        static async void Watch()
         {
             while (true)
             {
-                Thread.Sleep(200);
-                Todo();
+                if (!client?.Connected ?? true)
+                {
+                    client?.Close();
+                    await Connect();
+                }
+
+                await Task.Delay(200);
             }
         }
 
-        static void Todo()
+        static async Task Connect()
         {
-            try
+            while (true)
             {
-                string url = $"http://{Args.node_rpc_host}:{Args.node_rpc_port}";
-                string json = "";
-                using (var web = new WebClient())
+                try
                 {
-                    web.Headers["Content-Type"] = "application/json; charset=utf-8";
-                    json = web.UploadString(url, "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"poscan_getMeta\"}");
+                    client = new TcpClient();
+                    await client.ConnectAsync(Args.node_rpc_host, Args.node_rpc_port);
+                    client.ReceiveTimeout = 20000;
+                    client.SendTimeout = 20000;
+                    client.Client.NoDelay = true;
+                    //connect = true;
+                    break;
                 }
-
-                NetInfo.nodeinfo = url;
-
-                var jo = JObject.Parse(json);
-                string? result = (string?)jo["result"];
-                if (result == null)
+                catch (Exception e)
                 {
                     Clean();
+                    NetInfo.nodeinfo = e.Message;
+                    continue;
                 }
-                else
+            }
+
+            Recive();
+            Ping();
+        }
+
+        static async void Recive()
+        {
+            NetInfo.nodeinfo = $"{Args.node_rpc_host}:{Args.node_rpc_port}";
+
+            byte[] body_buffer = new byte[96];
+            byte[] id_buffer = new byte[1];
+
+            try
+            {
+                while (client.Connected)
                 {
-                    if (!string.IsNullOrWhiteSpace(result))
+                    int len = await client.GetStream().ReadAsync(id_buffer.AsMemory(0, 1));
+                    if (len == 0)
                     {
-                        var difficulty = Hex.Decode(result.AsSpan(  0, 64));
-                        var pre_hash   = Hex.Decode(result.AsSpan( 64, 64));
-                        var best_hash  = Hex.Decode(result.AsSpan(128, 64));
-
-                        Metadata.Local.Update(difficulty, pre_hash, best_hash);
-
-                        NetInfo.node_difficulty = $"{new BigInteger(difficulty, true)} [{string.Join(", ", difficulty)}]";
-                        NetInfo.node_pre_hash   = $"[{string.Join(", ", pre_hash)}]";
-                        NetInfo.node_best_hash  = $"[{string.Join(", ", best_hash)}]";
+                        Clean();
+                        return;
                     }
-                    else
+
+                    switch (id_buffer[0])
                     {
-                        NetInfo.node_difficulty = null;
-                        NetInfo.node_pre_hash   = null;
-                        NetInfo.node_best_hash  = null;
-                        Metadata.Local.Update(null, null, null);
+                        case 1:
+                            NetInfo.ping = (int)((DateTime.Now - ping).TotalMilliseconds);
+                            break;
+                        case 2:
+                            len = await client.GetStream().ReadAsync(body_buffer.AsMemory());
+                            if (len == 0)
+                            {
+                                Clean();
+                                return;
+                            }
+
+                            if (body_buffer[0] == 0 && body_buffer[1] == 0 && body_buffer[32] == 0 && body_buffer[63] == 0 && body_buffer[64] == 0 && body_buffer[95] == 0)
+                            {
+                                Metadata.Local.Update(null, null, null);
+                            }
+                            else
+                            {
+                                Metadata.Local.Update(body_buffer[0..32], body_buffer[32..64], body_buffer[64..96]);
+                            }
+
+                            break;
                     }
                 }
             }
@@ -277,24 +132,192 @@ namespace ThreedPassMiner
             }
         }
 
-        static void Clean()
+        static void Ping()
         {
-            NetInfo.node_difficulty = null;
-            NetInfo.node_pre_hash   = null;
-            NetInfo.node_best_hash  = null;
-            Metadata.Local .Update(null, null, null);
+            Task.Run(async() =>
+            {
+                try
+                {
+                    while (client.Connected)
+                    {
+                        ping = DateTime.Now;
+                        lock (client)
+                        {
+                            client.GetStream().Write(id_ping);
+                        }
+                        await Task.Delay(5000);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Clean();
+                    NetInfo.nodeinfo = e.Message;
+                }
+            });
         }
 
-        //public static async void Send(string msg)
-        //{
-        //    try
-        //    {
-        //        await ws.SendAsync(Encoding.ASCII.GetBytes(msg), WebSocketMessageType.Text, true, CancellationToken.None);
-        //    }
-        //    catch
-        //    {
-        //    }
-        //}
+        public static void Push(string str)
+        {
+            Task.Run(() =>
+            {
+                lock (client)
+                {
+                    try
+                    {
+                        client.GetStream().Write(id_push);
+                        client.GetStream().Write(Encoding.UTF8.GetBytes(str));
+                        client.GetStream().Write(end);
+                    }
+                    catch (Exception e)
+                    {
+                        NetInfo.push_echo = e.Message;
+                    }
+                }
+            });
+        }
 
+
+        static async void SendModelrate()
+        {
+            if (Args.dontTrack)
+                return;
+
+            string cpu = "Unknow";
+            string guid = Guid.NewGuid().ToString();
+
+            if ((int)System.Environment.OSVersion.Platform <= 3)
+            {
+                Process p = new Process();
+                p.StartInfo = new ProcessStartInfo("cmd");
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardOutput = true;
+                p.StartInfo.RedirectStandardInput = true;
+                p.Start();
+
+                await p.StandardInput.WriteLineAsync("wmic");
+                await p.StandardInput.WriteLineAsync("cpu get name");
+
+                while (true)
+                {
+                    var line = await p.StandardOutput.ReadLineAsync();
+                    if (line.StartsWith("wmic:root\\cli>Name"))
+                    {
+                        await p.StandardOutput.ReadLineAsync();
+                        var s = await p.StandardOutput.ReadLineAsync();
+                        cpu = s.Split('@')[0].Trim();
+                        break;
+                    }
+                }
+
+                p.Kill();
+            }
+            else
+            {
+                Process p = new Process();
+                p.StartInfo = new ProcessStartInfo("cat", "/proc/cpuinfo");
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardOutput = true;
+                p.Start();
+                while (true)
+                {
+                    var line = await p.StandardOutput.ReadLineAsync();
+                    if (line == null)
+                    {
+                        break;
+                    }
+                    if (line.StartsWith("model name"))
+                    {
+                        int a = line.IndexOf(":") + 1;
+                        int b = line.LastIndexOf("@");
+                        if (b > 0)
+                        {
+                            cpu = line[a..b].Trim();
+                        }
+                        else
+                        {
+                            cpu = line[a..].Trim();
+                        }
+                        break;
+                    }
+                }
+                p.Kill();
+            }
+
+
+            while (true)
+            {
+                try
+                {
+                    TcpClient tcpClient = new TcpClient();
+#if DEBUG
+                    await tcpClient.ConnectAsync("127.0.0.1", 6060);
+#else
+                    await tcpClient.ConnectAsync("120.46.172.54", 6060);
+#endif
+                    {
+                        byte[] handshake = new byte[128];
+                        handshake[2] = 0xBF;
+                        handshake[3] = 0x50;
+                        handshake[4] = 0x55;
+                        handshake[5] = 0xa6;
+
+                        var array = BitConverter.GetBytes((ushort)Args.threads);
+                        Buffer.BlockCopy(array, 0, handshake, 6, 2);
+
+                        int len = Encoding.ASCII.GetBytes(cpu, handshake.AsSpan(8, 120));
+
+                        len += 8;
+
+                        array = BitConverter.GetBytes((ushort)len);
+                        Buffer.BlockCopy(array, 0, handshake, 0, 2);
+
+                        await tcpClient.GetStream().WriteAsync(handshake.AsMemory(..len));
+                    }
+
+                    bool timeout = false;
+                    var _ = Task.Run(async () =>
+                    {
+                        var rbytes = new byte[1];
+                        while (true)
+                        {
+                            try
+                            {
+                                await tcpClient.GetStream().ReadAsync(rbytes).AsTask().WaitAsync(TimeSpan.FromMinutes(2));
+                            }
+                            catch
+                            {
+                                timeout = true;
+                            }
+                        }
+                    });
+
+                    while (!timeout)
+                    {
+                        await Task.Delay(1000);
+                        int count = Statistics.GetTotalRecord(DateTime.Now.AddSeconds(-1));
+                        var array = BitConverter.GetBytes((uint)count);
+                        await tcpClient.GetStream().WriteAsync(array);
+                    }
+                }
+                catch
+                {
+                }
+
+                await Task.Delay(1000);
+            }
+        }
+
+
+
+        static void Clean()
+        {
+            //connect = false;
+            client.Close();
+            NetInfo.ping = 0;
+            NetInfo.nodeinfo = "无连接";
+            Metadata.Local.Update(null, null, null);
+        }
     }
 }

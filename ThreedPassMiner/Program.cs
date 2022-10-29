@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -10,20 +11,22 @@ namespace ThreedPassMiner
     internal class Program
     {
         static DateTime startedDT;
+        static string kernel = String.Empty;
 
         static void Main(string[] args)
         {
 #if DEBUG
             //args = new string[] { "--test", "--difficulty", "1", "--threads", "1" };
-            args = new string[] { "--node-rpc-host", "192.168.31.129", "--node-rpc-port", "9933", "--threads", "1", "--main" };
+            //args = new string[] { "--node-rpc-host", "192.168.31.129", "--node-rpc-port", "9933", "--threads", "1" };
             //args = new string[] { "--node-rpc-port", "8000", "--threads", "12" , "--id" , "9999" };
             //args = new string[] { "--node-rpc-port", "8000", "--threads", "1" };
             //args = new string[] { "--test", "--difficulty", "100000", "--threads", "16" };
+            args = new string[] { "--node-rpc-host", "43.136.176.220", "--node-rpc-port", "1111", "--threads", "1" };
 #endif
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
-            Console.Title = "3DP主网 多线程版 V1.1.2";
+            Console.Title = "easy 3dp";
             ArgsParser(args);
 
             string? str_RockObjParams = null;
@@ -34,6 +37,11 @@ namespace ThreedPassMiner
                 if (obj != null) RockSpawn.rockObjParams = obj;
                 else throw new Exception("RockObjParams.json 解析失败");
             }
+
+            IntPtr ptr = Marshal.AllocHGlobal(128);
+            int len = get_version(ptr, 0);
+            unsafe { kernel = Encoding.UTF8.GetString((byte*)ptr, len); }
+            Marshal.FreeHGlobal(ptr);
 
             NodeServer.Start();
             Service.Start();
@@ -60,7 +68,7 @@ namespace ThreedPassMiner
                 {
                     default: throw new Exception("不支持的参数"+ args[i]);
                     case "--node-rpc-host": Args.node_rpc_host = args[++i]; break;
-                    case "--node-rpc-port": Args.node_rpc_port = args[++i]; break;
+                    case "--node-rpc-port": Args.node_rpc_port = (int)uint.Parse(args[++i]); break;
                     case "--test"         : Args.test          = true; break;
                     case "--refresh-interval": Args.refresh_interval = (int)uint.Parse(args[++i]); break;
                     case "--threads"      : Args.threads = uint.Parse(args[++i]); break;
@@ -84,79 +92,39 @@ namespace ThreedPassMiner
                         }
                         Args.test = true;
                         break;
+                    case "--restart-secs":  Args.restartSecs = (int)uint.Parse(args[++i]); break;
+                    case "--restart-hours": Args.restartSecs = (int)uint.Parse(args[++i]) * 60 * 60; break;
+                    case "--dont-track": Args.dontTrack = true; break;
                 }
             }
         }
 
         static void Print()
         {
-            int[,] nums = new int[8, 3];
-            (nums[0, 0], nums[0, 1], nums[0, 2]) = Statistics.GetRecord(DateTime.Now.AddHours  (- 1));
-            (nums[1, 0], nums[1, 1], nums[1, 2]) = Statistics.GetRecord(DateTime.Now.AddHours  (- 4));
-            (nums[2, 0], nums[2, 1], nums[2, 2]) = Statistics.GetRecord(DateTime.Now.AddHours  (-12));
-            (nums[3, 0], nums[3, 1], nums[3, 2]) = Statistics.GetRecord(DateTime.Now.AddDays   (- 1));
-            (nums[4, 0], nums[4, 1], nums[4, 2]) = Statistics.GetRecord(DateTime.Now.AddDays   (- 2));
-            (nums[5, 0], nums[5, 1], nums[5, 2]) = Statistics.GetRecord(DateTime.Now.AddDays   (- 7));
-            (nums[6, 0], nums[6, 1], nums[6, 2]) = Statistics.GetRecord(DateTime.Now.AddDays   (-15));
-            (nums[7, 0], nums[7, 1], nums[7, 2]) = Statistics.GetRecord(DateTime.Now.AddDays   (-30));
+            string str = $@"easy 3dp v1.1.3-Kernel-{kernel}    Running:{(DateTime.Now - startedDT):hh':'mm':'ss}
 
-
-            string[,] strnums = new string[8, 3];
-            for (int i = 0; i < 8; i++)
-            {
-                strnums[i, 0] = nums[i, 0].ToString();
-                strnums[i, 1] = nums[i, 1].ToString();
-                strnums[i, 2] = nums[i, 2].ToString();
-            }
-
-            int max1=0, max2=0, max3 = 0;
-            for (int i = 0; i < 8; i++)
-            {
-                max1 = Math.Max(max1, strnums[i, 0].Length);
-                max2 = Math.Max(max2, strnums[i, 1].Length);
-                max3 = Math.Max(max3, strnums[i, 2].Length);
-            }
-
-            string[] str3 = {
-                Statistics.GetHashAverage(TimeSpan.FromHours  ( 1)).ToString("0.00"),
-                Statistics.GetHashAverage(TimeSpan.FromHours  ( 4)).ToString("0.00"),
-                Statistics.GetHashAverage(TimeSpan.FromHours  (12)).ToString("0.00"),
-                Statistics.GetHashAverage(TimeSpan.FromDays   ( 1)).ToString("0.00"),
-                Statistics.GetHashAverage(TimeSpan.FromDays   ( 2)).ToString("0.00"),
-                Statistics.GetHashAverage(TimeSpan.FromDays   ( 7)).ToString("0.00"),
-                Statistics.GetHashAverage(TimeSpan.FromDays   (15)).ToString("0.00"),
-                Statistics.GetHashAverage(TimeSpan.FromDays   (30)).ToString("0.00"),
-            };
-            int max4 = 0;
-            for (int i = 0; i < str3.Length; i++)
-            {
-                max4 = Math.Max(max4, str3[i].Length);
-            }
-
-            string str = $@"节点：{(NetInfo.nodeinfo == null ? "无连接" :NetInfo.nodeinfo )}
-      Difficulty: {NetInfo.node_difficulty}
-      Pre_hash  : {NetInfo.node_pre_hash  }
-      Best_hash : {NetInfo.node_best_hash }
-
-运行时间：{DateTime.Now-startedDT}
-
-算力：{Statistics.GetHashPerSec()}H/s        1分钟平均：{Statistics.GetHashAverage(TimeSpan.FromMinutes(1)):0.00}H/s
-
-最近： 1时  提交：{strnums[0, 0].PadLeft(max1)} / Empty：{strnums[0, 2].PadLeft(max3)} / 总计：{strnums[0, 1].PadLeft(max2)} / 平均：{str3[0].PadLeft(max4)}H/s
-       4时  提交：{strnums[1, 0].PadLeft(max1)} / Empty：{strnums[1, 2].PadLeft(max3)} / 总计：{strnums[1, 1].PadLeft(max2)} / 平均：{str3[1].PadLeft(max4)}H/s
-      12时  提交：{strnums[2, 0].PadLeft(max1)} / Empty：{strnums[2, 2].PadLeft(max3)} / 总计：{strnums[2, 1].PadLeft(max2)} / 平均：{str3[2].PadLeft(max4)}H/s
-       1天  提交：{strnums[3, 0].PadLeft(max1)} / Empty：{strnums[3, 2].PadLeft(max3)} / 总计：{strnums[3, 1].PadLeft(max2)} / 平均：{str3[3].PadLeft(max4)}H/s
-       2天  提交：{strnums[4, 0].PadLeft(max1)} / Empty：{strnums[4, 2].PadLeft(max3)} / 总计：{strnums[4, 1].PadLeft(max2)} / 平均：{str3[4].PadLeft(max4)}H/s
-       7天  提交：{strnums[5, 0].PadLeft(max1)} / Empty：{strnums[5, 2].PadLeft(max3)} / 总计：{strnums[5, 1].PadLeft(max2)} / 平均：{str3[5].PadLeft(max4)}H/s
-      15天  提交：{strnums[6, 0].PadLeft(max1)} / Empty：{strnums[6, 2].PadLeft(max3)} / 总计：{strnums[6, 1].PadLeft(max2)} / 平均：{str3[6].PadLeft(max4)}H/s
-      30天  提交：{strnums[7, 0].PadLeft(max1)} / Empty：{strnums[7, 2].PadLeft(max3)} / 总计：{strnums[7, 1].PadLeft(max2)} / 平均：{str3[7].PadLeft(max4)}H/s
-
-节点返回消息：{NetInfo.push_echo}
+Server     : {NetInfo.nodeinfo ?? "not connected"}   Ping {NetInfo.ping}ms
+Difficulty : {NetInfo.node_difficulty}
+Pre_hash   : {NetInfo.node_pre_hash}
+Best_hash  : {NetInfo.node_best_hash}
+Speed      : {TGMK(Statistics.GetTotalRecord(DateTime.Now.AddSeconds(-1)))}h/s
 ";
-
             Console.Clear();
             Console.WriteLine(str);
         }
+
+        static string TGMK(double value)
+        {
+            if (value > 1_000_000_000_000) return (value / 1_000_000_000_000).ToString("0.00") + "T";
+            else if (value > 1_000_000_000) return (value / 1_000_000_000).ToString("0.000") + "G";
+            else if (value > 1_000_000) return (value / 1_000_000).ToString("0.000") + "M";
+            else if (value > 1_000) return (value / 1_000).ToString("0.000") + "K";
+            else return value.ToString("0.000");
+        }
+
+
+        [DllImport("pass3d", CallingConvention = CallingConvention.Cdecl)]
+        static extern int get_version(IntPtr str, int function);
 
     }
 }

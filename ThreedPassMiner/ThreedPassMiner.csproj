@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <ApplicationManifest></ApplicationManifest>
     <Configurations>Debug;Release;NoWater</Configurations>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NoWater|AnyCPU'">
@@ -20,13 +21,22 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="SHA3.Net" Version="2.0.0" />
-    <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+    <Compile Remove="RockObj\Perlin.cs" />
+    <Compile Remove="RockObj\Rock.cs" />
+    <Compile Remove="RockObj\Scrape.cs" />
+    <Compile Remove="RockObj\Sphere.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ThreeJs\ThreeJs.csproj" />
+    <None Include="D:\VisualStudioProjects\3DP\Pass3dMaster\pass3dmain\target\release\pass3d.dll" Link="pass3d.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="SHA3.Net" Version="2.0.0" />
+    <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup>

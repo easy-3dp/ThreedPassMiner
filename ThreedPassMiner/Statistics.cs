@@ -3,7 +3,7 @@
     internal static class Statistics
     {
         static readonly List<DateTime> successRecords = new List<DateTime>();
-        static readonly List<DateTime> errorRecords = new List<DateTime>();
+        static readonly List<DateTime> emptyRecords = new List<DateTime>();
         static readonly List<DateTime> totalRecords   = new List<DateTime>();
         static readonly object locker = new object();
 
@@ -17,23 +17,32 @@
             }
         }
 
-        public static void AddErrorRecord()
+        public static void AddEmptyRecord()
         {
             lock (locker)
             {
                 var now = DateTime.Now;
                 totalRecords.Add(now);
-                errorRecords.Add(now);
+                emptyRecords.Add(now);
             }
         }
 
-        public static (int success, int total, int error) GetRecord(DateTime dateTime)
+        public static int GetTotalRecord(DateTime dateTime)
         {
             lock (locker)
             {
                 int total = totalRecords.Count(x => x > dateTime);
+                return total;
+            }
+        }
+
+        public static (int success, int total, int error) GetAllRecord(DateTime dateTime)
+        {
+            lock (locker)
+            {
+                int total   = totalRecords  .Count(x => x > dateTime);
                 int success = successRecords.Count(x => x > dateTime);
-                int error = errorRecords.Count(x => x > dateTime);
+                int error   = emptyRecords  .Count(x => x > dateTime);
                 return (success, total, error);
             }
         }
@@ -51,8 +60,14 @@
         {
             lock (locker)
             {
-                var dateTime = DateTime.Now.Subtract(time);
-                return totalRecords.Count(x => x > dateTime) / time.TotalSeconds;
+                if (totalRecords.Count > 0)
+                {
+                    var dateTime = DateTime.Now.Subtract(time);
+                    var dateTime2 = DateTime.Now.Subtract(totalRecords[0]);
+                    var sec = Math.Min(dateTime2.TotalSeconds, time.TotalSeconds);
+                    return totalRecords.Count(x => x > dateTime) / sec;
+                }
+                return 0;
             }
         }
 
@@ -60,7 +75,7 @@
         {
             lock (locker)
             {
-                var dateTime = DateTime.Now.AddDays(30);
+                var dateTime = DateTime.Now.AddHours(1);
                 totalRecords.RemoveAll(x => x > dateTime);
                 successRecords.RemoveAll(x => x > dateTime);
             }

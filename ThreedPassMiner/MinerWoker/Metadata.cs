@@ -21,6 +21,19 @@ namespace ThreedPassMiner
                     pre_hash = bytes_pre_hash;
                     best_hash = bytes_best_hash;
                     difficulty = new BigInteger(difficultyBytes, true);
+
+                    if (bytes_difficulty != null)
+                    {
+                        NetInfo.node_difficulty = difficulty.ToString();
+                        NetInfo.node_pre_hash   = Hex.Encode(bytes_pre_hash);
+                        NetInfo.node_best_hash  = Hex.Encode(bytes_best_hash);
+                    }
+                    else
+                    {
+                        NetInfo.node_difficulty = null;
+                        NetInfo.node_pre_hash   = null;
+                        NetInfo.node_best_hash  = null;
+                    }
                 }
             }
 

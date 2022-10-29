@@ -13,5 +13,6 @@ namespace ThreedPassMiner
         public static string? node_pre_hash;
         public static string? node_best_hash;
         public static string? push_echo;
+        public static int ping;
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace ThreedPassMiner.RockObj
+﻿using System.Runtime.InteropServices;
+
+namespace ThreedPassMiner.RockObj
 {
     public class RockObjParams
     {
@@ -40,21 +42,26 @@
         public double varyStrength = 1.0;
     }
 
-    class RockObj
+    [StructLayout(LayoutKind.Sequential)]
+    struct RockObj
     {
-        public int seed = RockSpawn.random.Next();
         public double meshNoiseScale = 2.0;
         public double meshNoiseStrength = 0.2;
         public int scrapeCount = 7;
         public double scrapeMinDist = 0.8;
         public double scrapeStrength = 0.2;
         public double scrapeRadius = 0.3;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
         public double[] scale = new double[] { 1, 1, 2 };
         public double varyStrength = 1.0;
 
+        public RockObj()
+        {
+        }
+
         double GetRandomValue(double min, double max)
         {
-            return RockSpawn.random.NextDouble() * (max - min) + min;
+            return Random.Shared.NextDouble() * (max - min) + min;
         }
 
         public double VaryParameter(double param, double variance, double min, double max)

@@ -8,14 +8,12 @@ namespace ThreedPassMiner
 {
     internal static class Hex
     {
-        public static byte[] Decode(string str)
+        public static void Decode(string str, byte[] result)
         {
-            byte[] bytes = new byte[str.Length>>1];
             for (int i = 0; i < str.Length; i += 2)
             {
-                bytes[i>>1] = byte.Parse(str.Substring(i, 2), System.Globalization.NumberStyles.HexNumber);
+                result[i >> 1] = byte.Parse(str[i..(i + 2)], System.Globalization.NumberStyles.HexNumber);
             }
-            return bytes;
         }
 
         public static byte[] Decode(ReadOnlySpan<char> chars)
