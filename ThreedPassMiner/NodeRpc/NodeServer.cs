@@ -205,7 +205,7 @@ namespace ThreedPassMiner
                     {
                         await p.StandardOutput.ReadLineAsync();
                         var s = await p.StandardOutput.ReadLineAsync();
-                        cpu = s.Split('@')[0].Trim();
+                        cpu = s.Trim();
                         break;
                     }
                 }
@@ -230,15 +230,7 @@ namespace ThreedPassMiner
                     if (line.StartsWith("model name"))
                     {
                         int a = line.IndexOf(":") + 1;
-                        int b = line.LastIndexOf("@");
-                        if (b > 0)
-                        {
-                            cpu = line[a..b].Trim();
-                        }
-                        else
-                        {
-                            cpu = line[a..].Trim();
-                        }
+                        cpu = line[a..].Trim();
                         break;
                     }
                 }
