@@ -21,7 +21,7 @@ namespace ThreedPassMiner
             //args = new string[] { "--node-rpc-port", "8000", "--threads", "12" , "--id" , "9999" };
             //args = new string[] { "--node-rpc-port", "8000", "--threads", "1" };
             //args = new string[] { "--test", "--difficulty", "100000", "--threads", "16" };
-            args = new string[] { "--node-rpc-host", "43.136.176.220", "--node-rpc-port", "1111", "--threads", "1" };
+            args = new string[] { "--node-rpc-host", "127.0.0.1", "--node-rpc-port", "9999", "--threads", "1" };
 #endif
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
@@ -52,6 +52,8 @@ namespace ThreedPassMiner
                 Thread.Sleep(Args.refresh_interval);
                 Print();
                 Statistics.ClearToolong();
+                if (Args.restartSecs != null && Args.restartSecs <= (DateTime.Now - startedDT).TotalSeconds)
+                    break;
             }
         }
 
