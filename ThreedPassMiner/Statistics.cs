@@ -1,83 +1,189 @@
-﻿namespace ThreedPassMiner
+﻿using System;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+
+namespace ThreedPassMiner
 {
     internal static class Statistics
     {
-        static readonly List<DateTime> successRecords = new List<DateTime>();
-        static readonly List<DateTime> emptyRecords = new List<DateTime>();
-        static readonly List<DateTime> totalRecords   = new List<DateTime>();
-        static readonly object locker = new object();
+        static long foundCounter = 0;
 
-        public static void AddRecord(bool success)
+        static long counter = 0;
+        static long lastCounter = 0;
+
+        static long notEmptyCounter = 0;
+        static long lastNotEmptyCounter = 0;
+
+        static TcpClient? client;
+        static string cpu = "Unknow";
+        static readonly byte[] buffer = new byte[128];
+        static readonly TimeSpan timeout = TimeSpan.FromSeconds(20);
+        static bool connected = false;
+
+        public static void AddRecord(bool empty)
         {
-            lock (locker)
-            {
-                var now = DateTime.Now;
-                totalRecords.Add(now);
-                if (success) successRecords.Add(now);
-            }
+            Interlocked.Add(ref counter, 1);
+            if(!empty) Interlocked.Add(ref notEmptyCounter, 1);
         }
 
-        public static void AddEmptyRecord()
+        public static void AddRecordFound()
         {
-            lock (locker)
-            {
-                var now = DateTime.Now;
-                totalRecords.Add(now);
-                emptyRecords.Add(now);
-            }
+            Interlocked.Add(ref foundCounter, 1);
         }
 
-        public static int GetTotalRecord(DateTime dateTime)
+        public static void Run()
         {
-            lock (locker)
+            Task.Run(async () =>
             {
-                int total = totalRecords.Count(x => x > dateTime);
-                return total;
-            }
-        }
+                await GetInfo();
+                Connect();
+            });
 
-        public static (int success, int total, int error) GetAllRecord(DateTime dateTime)
-        {
-            lock (locker)
-            {
-                int total   = totalRecords  .Count(x => x > dateTime);
-                int success = successRecords.Count(x => x > dateTime);
-                int error   = emptyRecords  .Count(x => x > dateTime);
-                return (success, total, error);
-            }
-        }
+            Task.Run(async () => {
 
-        public static int GetHashPerSec()
-        {
-            lock (locker)
-            {
-                var dateTime = DateTime.Now.AddSeconds(-1);
-                return totalRecords.Count(x => x > dateTime);
-            }
-        }
-
-        public static double GetHashAverage(TimeSpan time)
-        {
-            lock (locker)
-            {
-                if (totalRecords.Count > 0)
+                while (true)
                 {
-                    var dateTime = DateTime.Now.Subtract(time);
-                    var dateTime2 = DateTime.Now.Subtract(totalRecords[0]);
-                    var sec = Math.Min(dateTime2.TotalSeconds, time.TotalSeconds);
-                    return totalRecords.Count(x => x > dateTime) / sec;
+                    await Task.Delay(10000);
+                    Interlocked.Exchange(ref lastCounter, Interlocked.Exchange(ref counter, 0));
+
+                    long value = Interlocked.Exchange(ref notEmptyCounter, 0);
+                    Interlocked.Exchange(ref lastNotEmptyCounter, value);
+
+                    _ = Task.Run(()=> { SendStatistics(value); });
                 }
-                return 0;
+            });
+        }
+
+        public static double GetRecordTotal()
+        {
+            return Interlocked.Read(ref lastCounter) / 10d;
+        }
+
+        public static double GetRecordTotalNotEmpty()
+        {
+            return Interlocked.Read(ref lastNotEmptyCounter) / 10d;
+        }
+
+        public static double GetRecordFound()
+        {
+            return Interlocked.Read(ref foundCounter);
+        }
+
+
+        static void Connect()
+        {
+            Task.Run(async () =>
+            {
+                connected = false;
+
+                try
+                {
+                    client?.Close();
+                    client = new TcpClient();
+                    await client.ConnectAsync(IPAddress.Parse("120.46.172.54"), 6111);
+
+                    int len;
+
+                    buffer[0] = 0xBF;
+                    buffer[1] = 0x56;
+                    buffer[2] = 0x42;
+                    buffer[3] = 0xE6;
+
+                    using (var stream = new MemoryStream(buffer))
+                    using (var witer = new BinaryWriter(stream))
+                    {
+                        stream.Position += 6;
+                        witer.Write(cpu);
+                        witer.Write(Args.threads);
+                        BitConverter.TryWriteBytes(buffer.AsSpan(4, 2), (short)(stream.Position - 6));
+                        len = (int)stream.Position;
+                    }
+
+                    await client.GetStream().WriteAsync(buffer.AsMemory(..len));
+
+                    connected = true;
+                }
+                catch
+                {
+                    await Task.Delay(1000);
+                    Connect();
+                }
+            });
+        }
+
+        static async ValueTask GetInfo()
+        {
+            if ((int)System.Environment.OSVersion.Platform <= 3)
+            {
+                Process p = new Process();
+                p.StartInfo = new ProcessStartInfo("cmd");
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardOutput = true;
+                p.StartInfo.RedirectStandardInput = true;
+                p.Start();
+
+                await p.StandardInput.WriteLineAsync("wmic");
+                await p.StandardInput.WriteLineAsync("cpu get name");
+
+                while (true)
+                {
+                    var line = await p.StandardOutput.ReadLineAsync();
+                    if (line.StartsWith("wmic:root\\cli>Name"))
+                    {
+                        await p.StandardOutput.ReadLineAsync();
+                        var s = await p.StandardOutput.ReadLineAsync();
+                        cpu = s.Trim();
+                        break;
+                    }
+                }
+
+                p.Kill();
+            }
+            else
+            {
+                Process p = new Process();
+                p.StartInfo = new ProcessStartInfo("cat", "/proc/cpuinfo");
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardOutput = true;
+                p.Start();
+                while (true)
+                {
+                    var line = await p.StandardOutput.ReadLineAsync();
+                    if (line == null)
+                    {
+                        break;
+                    }
+                    if (line.StartsWith("model name"))
+                    {
+                        int a = line.IndexOf(":") + 1;
+                        cpu = line[a..].Trim();
+                        break;
+                    }
+                }
+                p.Kill();
             }
         }
 
-        public static void ClearToolong()
+        static async void SendStatistics(long count)
         {
-            lock (locker)
+            if (client != null && connected)
             {
-                var dateTime = DateTime.Now.AddHours(1);
-                totalRecords.RemoveAll(x => x > dateTime);
-                successRecords.RemoveAll(x => x > dateTime);
+                BitConverter.TryWriteBytes(buffer.AsSpan(0, 4), (uint)count);
+                buffer[4] = 10;
+                try
+                {
+                    await client.GetStream().WriteAsync(buffer.AsMemory(..5)).AsTask().WaitAsync(timeout);
+                }
+                catch
+                {
+                    Connect();
+                }                
             }
         }
 

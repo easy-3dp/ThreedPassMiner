@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-
-namespace ThreedPassMiner
+﻿namespace ThreedPassMiner
 {
     internal class Args
     {
@@ -13,8 +11,10 @@ namespace ThreedPassMiner
         public static int refresh_interval = 1000;
         public static uint threads = (uint)Environment.ProcessorCount;
 
-        public static int? restartSecs = null;
+        public static bool isSolo = false;
+        public static string member_id = string.Empty;
+        public static byte[] key = new byte[32];
 
-        public static bool dontTrack = false;
+        public static string algorithm = string.Empty;
     }
 }

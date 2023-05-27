@@ -1,50 +1,104 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
+using System.Text;
 
 namespace ThreedPassMiner
 {
     internal static class Metadata
     {
-        public class Meta
+        readonly static ReaderWriterLockSlim locker = new ReaderWriterLockSlim();
+        static bool hasValue;
+        static byte[] difficultyBytes = new byte[32];
+        static byte[] pre_hash = new byte[32];
+        static byte[] best_hash = new byte[32];
+        static byte[] pool_public = new byte[32];
+        static string pool_id = string.Empty;
+        static BigInteger difficulty;
+
+        public static void Update(ReadOnlySpan<byte> bytes)
         {
-            byte[]? difficultyBytes;
-            byte[]? pre_hash;
-            byte[]? best_hash;
-            BigInteger? difficulty;
-
-            readonly object locker = new object();
-
-            public void Update(byte[]? bytes_difficulty, byte[]? bytes_pre_hash, byte[]? bytes_best_hash)
+            locker.EnterWriteLock();
+          
+            if (Args.isSolo)
             {
-                lock (locker)
-                {
-                    difficultyBytes = bytes_difficulty;
-                    pre_hash = bytes_pre_hash;
-                    best_hash = bytes_best_hash;
-                    difficulty = new BigInteger(difficultyBytes, true);
-
-                    if (bytes_difficulty != null)
-                    {
-                        NetInfo.node_difficulty = difficulty.ToString();
-                        NetInfo.node_pre_hash   = Hex.Encode(bytes_pre_hash);
-                        NetInfo.node_best_hash  = Hex.Encode(bytes_best_hash);
-                    }
-                    else
-                    {
-                        NetInfo.node_difficulty = null;
-                        NetInfo.node_pre_hash   = null;
-                        NetInfo.node_best_hash  = null;
-                    }
-                }
+                bytes[ 0..32].CopyTo(difficultyBytes);
+                bytes[32..64].CopyTo(pre_hash);
+                bytes[64..96].CopyTo(best_hash);
+                hasValue = difficultyBytes[0] != 0 || pre_hash[0] != 0 || best_hash[0] != 0;
+            }
+            else
+            {
+                bytes[ 0..32].CopyTo(pre_hash);
+                bytes[32..64].CopyTo(best_hash);
+                NetInfo.node_difficulty_2 = new BigInteger(bytes[64..96], true).ToString();
+                bytes[96..128].CopyTo(difficultyBytes);
+                bytes[128..160].CopyTo(pool_public);
+                pool_id = Encoding.ASCII.GetString(bytes[160..209]);
+                hasValue = difficultyBytes[0] != 0 || pre_hash[0] != 0 || best_hash[0] != 0 || pool_public[0] != 0;
             }
 
-            public (BigInteger? difficulty, byte[]? difficultyBytes, byte[]? pre_hash, byte[]? best_hash) GetValues()
+            difficulty = new BigInteger(difficultyBytes, true);
+
+            if (hasValue)
             {
-                lock (locker)
+                NetInfo.node_difficulty = difficulty.ToString();
+                NetInfo.node_pre_hash = Hex.Encode(pre_hash);
+                NetInfo.node_best_hash = Hex.Encode(best_hash);
+            }
+            else
+            {
+                NetInfo.node_difficulty = null;
+                NetInfo.node_pre_hash = null;
+                NetInfo.node_best_hash = null;
+            }
+
+            locker.ExitWriteLock();
+        }
+
+        public static bool GetValues([NotNullWhen(true)] out BigInteger? difficulty, [NotNullWhen(true)] out byte[]? difficultyBytes, [NotNullWhen(true)] out byte[]? preBytes, [NotNullWhen(true)] out byte[]? bestBytes, [NotNullWhen(true)] out byte[]? publicBytes, [NotNullWhen(true)] out string? poolId)
+        {
+            try
+            {
+                locker.EnterReadLock();
+
+                if (hasValue)
                 {
-                    return (difficulty, difficultyBytes, pre_hash, best_hash);
+                    difficulty = Metadata.difficulty;
+                    difficultyBytes = Metadata.difficultyBytes;
+                    preBytes = pre_hash;
+                    bestBytes = best_hash;
+                    publicBytes = pool_public;
+                    poolId = pool_id;
+                    return true;
                 }
+                else
+                {
+                    difficulty = null;
+                    difficultyBytes = null;
+                    preBytes = null;
+                    bestBytes = null;
+                    publicBytes = null;
+                    poolId = null;
+                    return false;
+                }
+            }
+            finally
+            {
+                locker.ExitReadLock();
             }
         }
-        public static Meta Local { get; } = new();
+
+        public static void Close()
+        {
+            locker.EnterWriteLock();
+            hasValue = false;
+            Array.Clear(difficultyBytes);
+            Array.Clear(pre_hash);
+            Array.Clear(best_hash);
+            Array.Clear(pool_public);
+            difficulty = 0;
+            locker.ExitWriteLock();
+        }
+
     }
 }

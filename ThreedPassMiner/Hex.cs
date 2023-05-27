@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 namespace ThreedPassMiner
 {
@@ -14,16 +10,6 @@ namespace ThreedPassMiner
             {
                 result[i >> 1] = byte.Parse(str[i..(i + 2)], System.Globalization.NumberStyles.HexNumber);
             }
-        }
-
-        public static byte[] Decode(ReadOnlySpan<char> chars)
-        {
-            byte[] bytes = new byte[chars.Length >> 1];
-            for (int i = 0; i < chars.Length; i += 2)
-            {
-                bytes[i >> 1] = byte.Parse(chars[i..(i+2)], System.Globalization.NumberStyles.HexNumber);
-            }
-            return bytes;
         }
 
         public static string Encode(Span<byte> bytes)

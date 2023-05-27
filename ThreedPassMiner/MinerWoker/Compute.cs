@@ -1,4 +1,4 @@
-﻿using SHA3.Net;
+﻿using Org.BouncyCastle.Crypto.Digests;
 
 namespace ThreedPassMiner
 {
@@ -9,19 +9,16 @@ namespace ThreedPassMiner
         public byte[] poscan_hash;//32
 
         readonly byte[] encode = new byte[96];
-        readonly Sha3 sha3 = Sha3.Sha3256();
+        readonly Sha3Digest sha3 = new Sha3Digest(256);
 
-        public byte[] Encode()
+        public void Seal(byte[] decode)
         {
             Array.Copy(difficulty , 0, encode,  0, 32);
             Array.Copy(pre_hash   , 0, encode, 32, 32);
             Array.Copy(poscan_hash, 0, encode, 64, 32);
-            return encode;
-        }
 
-        public byte[] Seal()
-        {
-            return sha3.ComputeHash(Encode());
+            sha3.BlockUpdate(encode, 0, encode.Length);
+            sha3.DoFinal(decode);
         }
 
     }
