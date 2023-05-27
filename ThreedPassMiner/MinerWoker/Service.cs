@@ -47,7 +47,7 @@ namespace ThreedPassMiner
             {
                 if (Metadata.GetValues(out BigInteger? difficulty, out byte[]? difficultyBytes, out byte[]? pre_hash, out byte[]? best_hash, out byte[]? pub_key, out string? pool_id))
                 {
-                    if (0 == p3d_process(best_hash, hash, objstr, ref len))
+                    if (0 == p3d_process(pre_hash, hash, objstr, ref len))
                     {
                         Statistics.AddRecord(true);
                     }
