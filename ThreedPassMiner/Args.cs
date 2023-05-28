@@ -9,7 +9,7 @@
         public static byte[]? difficultyBytes = null;
 
         public static int refresh_interval = 1000;
-        public static uint threads = (uint)Environment.ProcessorCount;
+        public static ushort threads = (ushort)Environment.ProcessorCount;
 
         public static bool isSolo = false;
         public static string member_id = string.Empty;

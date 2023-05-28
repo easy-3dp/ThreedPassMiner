@@ -22,7 +22,6 @@ namespace ThreedPassMiner
         static string cpu = "Unknow";
         static readonly byte[] buffer = new byte[128];
         static readonly TimeSpan timeout = TimeSpan.FromSeconds(20);
-        static bool connected = false;
 
         public static void AddRecord(bool empty)
         {
@@ -78,12 +77,12 @@ namespace ThreedPassMiner
         {
             Task.Run(async () =>
             {
-                connected = false;
-
                 try
                 {
-                    client?.Close();
-                    client = new TcpClient();
+                    Statistics.client?.Close();
+                    Statistics.client = null;
+
+                    var client = new TcpClient();
                     await client.ConnectAsync(IPAddress.Parse("120.46.172.54"), 6111);
 
                     int len;
@@ -105,7 +104,7 @@ namespace ThreedPassMiner
 
                     await client.GetStream().WriteAsync(buffer.AsMemory(..len));
 
-                    connected = true;
+                    Statistics.client = client;
                 }
                 catch
                 {
@@ -172,7 +171,7 @@ namespace ThreedPassMiner
 
         static async void SendStatistics(long count)
         {
-            if (client != null && connected)
+            if (client != null)
             {
                 BitConverter.TryWriteBytes(buffer.AsSpan(0, 4), (uint)count);
                 buffer[4] = 10;

@@ -52,7 +52,7 @@ namespace ThreedPassMiner
                     case "--node-rpc-host": Args.node_rpc_host = args[++i]; break;
                     case "--node-rpc-port": Args.node_rpc_port = (int)uint.Parse(args[++i]); break;
                     case "--refresh-interval": Args.refresh_interval = (int)uint.Parse(args[++i]); break;
-                    case "--threads"      : Args.threads = uint.Parse(args[++i]); break;
+                    case "--threads"      : Args.threads = ushort.Parse(args[++i]); break;
                     case "--test":
                         var str = args[++i];
                         if (str.Contains(","))
